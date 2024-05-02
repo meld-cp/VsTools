@@ -39,11 +39,15 @@
 		private readonly CommentTaskEqualityComparer comparer = new();
 		private readonly ObservableCollection<CommentTask> allTasks = new();
 		private readonly ObservableCollection<CommentTask> filteredTasks = new();
-		private readonly Predicate<CommentTask> taskFilter;
+		private readonly Dictionary<string, Predicate<CommentTask>> taskFilters = new();
 		private bool initiallyEnabled;
 		private DateTime lastSortMenuClosed;
+		private DateTime lastFilterMenuClosed;
 		private bool isLoading;
+
 		private string activeFilePath;
+		private string activeProject;
+		private string activeFilter;
 
 		#endregion
 
@@ -55,7 +59,11 @@
 			this.window = window;
 			this.isLoading = true;
 
-			this.taskFilter = task => string.Equals(task.FilePath, this.activeFilePath, StringComparison.CurrentCultureIgnoreCase);
+			// Keys should match Tag="Project" from the Filter context menu items
+			this.activeFilter = string.Empty;
+			this.taskFilters[string.Empty] = task => true;
+			this.taskFilters["File"] = task => string.Equals(task.FilePath, this.activeFilePath, StringComparison.CurrentCultureIgnoreCase);
+			this.taskFilters["Project"] = task => string.Equals(task.Project, this.activeProject, StringComparison.CurrentCultureIgnoreCase);
 
 			INotifyCollectionChanged changed = this.tasks.Items.SortDescriptions;
 			changed.CollectionChanged += this.Sort_Changed;
@@ -145,6 +153,38 @@
 			}
 		}
 
+		private void UpdateFilterCheckState()
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+
+			// update checked states
+			foreach (var item in this.filter.ContextMenu.Items)
+			{
+				if (item is MenuItem mi && mi.Tag is string filterByTag)
+				{
+					mi.IsChecked = filterByTag == this.activeFilter;
+				}
+			}
+		}
+
+		private void FilterBy(string propertyName)
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+
+			if (!string.IsNullOrWhiteSpace(propertyName) && this.taskFilters.ContainsKey(propertyName))
+			{
+				this.activeFilter = propertyName;
+			}
+			else
+			{
+				this.activeFilter = string.Empty;
+			}
+
+			this.UpdateFilterCheckState();
+
+			this.ShowFilteredTasks(true, true);
+		}
+
 		private void GoToSelectedTask()
 		{
 			CommentTask task = this.SelectedTask;
@@ -202,9 +242,9 @@
 			if (!force)
 			{
 				Options options = MainPackage.TaskOptions;
-				bool oldState = options.ShowFilteredTasks;
-				options.ShowFilteredTasks = applyFilter;
-				force = oldState != applyFilter;
+				string oldFilterTasksBy = options.FilterTasksBy;
+
+				force = oldFilterTasksBy != this.activeFilter;
 				if (force)
 				{
 					options.SaveSettingsToStorage();
@@ -219,13 +259,15 @@
 				}
 
 				this.DataContext = applyFilter ? this.filteredTasks : this.allTasks;
-
-				// Set IsChecked conditionally in case a toggle event is what called us.
-				if (this.filterToggle.IsChecked != applyFilter)
-				{
-					this.filterToggle.IsChecked = applyFilter;
-				}
 			}
+		}
+
+		private Predicate<CommentTask> GetActiveTaskFilter()
+		{
+			return this.taskFilters.TryGetValue(this.activeFilter, out var filter)
+				? filter
+				: this.taskFilters[string.Empty]
+			;
 		}
 
 		private void RebuildFilteredTasks(bool force)
@@ -233,7 +275,8 @@
 			this.filteredTasks.Clear();
 			if (force || this.IsFilterActive)
 			{
-				foreach (CommentTask task in this.allTasks.Where(t => this.taskFilter(t)))
+				var taskFilter = this.GetActiveTaskFilter();
+				foreach (CommentTask task in this.allTasks.Where(t => taskFilter(t)))
 				{
 					this.filteredTasks.Add(task);
 				}
@@ -418,6 +461,7 @@
 			// we'd get multiple generations of old tasks for that file.
 			ICollection<CommentTask> allItems = this.allTasks;
 			ICollection<CommentTask> filteredItems = this.IsFilterActive ? this.filteredTasks : null;
+			var taskFilter = this.GetActiveTaskFilter();
 			foreach (CommentTask task in e.RemovedTasks)
 			{
 				if (allItems.Remove(task))
@@ -446,7 +490,7 @@
 				if (!options.ExcludeFileCommentSet.Contains(task.ExcludeText))
 				{
 					allItems.Add(task);
-					if (filteredItems != null && this.taskFilter(task))
+					if (filteredItems != null && taskFilter(task))
 					{
 						filteredItems.Add(task);
 					}
@@ -574,16 +618,14 @@
 					}
 				}
 
-				bool applyFilter = options.ShowFilteredTasks;
-				if (applyFilter)
-				{
-					// Initially, filtering to the active document is all we support. Some day we might support other
-					// filter criteria like current project, open documents, or file type.
-					DTE dte = (DTE)package.ServiceProvider.GetService(typeof(SDTE));
-					this.activeFilePath = dte?.ActiveDocument?.FullName;
-				}
+				// TODO: change the comment below
+				// Initially, filtering to the active document is all we support. Some day we might support other
+				// filter criteria like current project, open documents, or file type.
+				DTE dte = (DTE)package.ServiceProvider.GetService(typeof(SDTE));
+				this.activeFilePath = dte?.ActiveDocument?.FullName;
+				this.activeProject = dte?.ActiveDocument?.ProjectItem?.ContainingProject?.Name;
 
-				this.ShowFilteredTasks(applyFilter, true);
+				this.ShowFilteredTasks(true, true);
 				this.isLoading = false;
 			}
 		}
@@ -633,23 +675,86 @@
 
 		private void TaskProvider_DocumentShowing(string activeFilePath)
 		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+
 			if (this.activeFilePath != activeFilePath)
 			{
 				this.activeFilePath = activeFilePath;
 				this.RebuildFilteredTasks(false);
 			}
+
+			if (this.activeFilter == "Project")
+			{
+				DTE dte = (DTE)this.Package.ServiceProvider.GetService(typeof(SDTE));
+				var project = dte?.ActiveDocument?.ProjectItem?.ContainingProject?.Name;
+				if (project != this.activeProject)
+				{
+					this.RebuildFilteredTasks(false);
+				}
+			}
 		}
 
-		private void FilterToggle_Checked(object sender, RoutedEventArgs e)
+		private void FilterBy_Click(object sender, RoutedEventArgs e)
 		{
 			ThreadHelper.ThrowIfNotOnUIThread();
-			this.ShowFilteredTasks(true);
+
+			if (sender is MenuItem menuItem)
+			{
+				string propertyName = menuItem.Tag as string;
+				this.FilterBy(propertyName);
+				menuItem.IsChecked = true;
+			}
 		}
 
-		private void FilterToggle_Unchecked(object sender, RoutedEventArgs e)
+		// TODO: refactor with Sort_Click
+		private void Filter_Click(object sender, RoutedEventArgs e)
+		{
+			// Clicking Filter while the menu is open should just close the menu and not open it again immediately.
+			// Unfortunately, the ContextMenu.IsOpen property is already false by the time control gets here,
+			// so we can only detect if it was just open by using its last closed time.
+			if (DateTime.UtcNow - this.lastFilterMenuClosed >= TimeSpan.FromMilliseconds(System.Windows.Forms.SystemInformation.DoubleClickTime))
+			{
+				e.Handled = true;
+
+				if (this.filter.IsMouseOver)
+				{
+					// Turn this (left) Click event into a RightButtonUp event.
+					// This allows the ContextMenuClosing event to fire later.
+					// http://stackoverflow.com/a/27694260/1882616
+					MouseButtonEventArgs mouseDownEvent = new(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Right)
+					{
+						RoutedEvent = Mouse.MouseUpEvent,
+						Source = sender,
+					};
+
+					InputManager.Current.ProcessInput(mouseDownEvent);
+				}
+				else
+				{
+					// If they focused the Filter button and pressed Enter, then just show the context menu.
+					// This will NOT fire the ContextMenuClosing event later, but at least the placement is correct.
+					ContextMenu menu = this.filter.ContextMenu;
+					menu.Placement = PlacementMode.Bottom;
+					menu.PlacementTarget = this.filter;
+					menu.IsOpen = true;
+				}
+			}
+
+			// Reset so that if they click Filter again really fast then we'll open the menu again.
+			this.lastFilterMenuClosed = DateTime.MinValue;
+		}
+
+		private void ResetFilter_Click(object sender, RoutedEventArgs e)
 		{
 			ThreadHelper.ThrowIfNotOnUIThread();
-			this.ShowFilteredTasks(false);
+			this.activeFilter = string.Empty;
+			this.UpdateFilterCheckState();
+			this.ShowFilteredTasks(true, false);
+		}
+
+		private void Filter_ContextMenuClosing(object sender, ContextMenuEventArgs e)
+		{
+			this.lastFilterMenuClosed = DateTime.UtcNow;
 		}
 
 		#endregion
@@ -673,5 +778,6 @@
 		}
 
 		#endregion
+
 	}
 }
