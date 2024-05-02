@@ -222,7 +222,7 @@
 		public string TasksStatusXml { get; set; }
 
 		[Browsable(false)]
-		public bool ShowFilteredTasks { get; set; }
+		public string FilterTasksBy { get; set; }
 
 		#endregion
 

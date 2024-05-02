@@ -44,6 +44,7 @@
 		private DateTime lastSortMenuClosed;
 		private bool isLoading;
 		private string activeFilePath;
+		private string activeProject;
 
 		#endregion
 
@@ -202,9 +203,9 @@
 			if (!force)
 			{
 				Options options = MainPackage.TaskOptions;
-				bool oldState = options.ShowFilteredTasks;
-				options.ShowFilteredTasks = applyFilter;
-				force = oldState != applyFilter;
+				string oldFilterTasksBy = options.FilterTasksBy;
+				options.FilterTasksBy = applyFilter;
+				force = oldFilterTasksBy != applyFilter;
 				if (force)
 				{
 					options.SaveSettingsToStorage();
@@ -574,7 +575,7 @@
 					}
 				}
 
-				bool applyFilter = options.ShowFilteredTasks;
+				string applyFilter = options.FilterTasksBy;
 				if (applyFilter)
 				{
 					// Initially, filtering to the active document is all we support. Some day we might support other
@@ -652,6 +653,31 @@
 			this.ShowFilteredTasks(false);
 		}
 
+		private void FilterNone_Click(object sender, RoutedEventArgs e)
+		{
+
+		}
+
+		private void FilterBy_Click(object sender, RoutedEventArgs e)
+		{
+
+		}
+
+		private void Filter_Click(object sender, RoutedEventArgs e)
+		{
+
+		}
+
+		private void ResetFilter_Click(object sender, RoutedEventArgs e)
+		{
+
+		}
+
+		private void Filter_ContextMenuClosing(object sender, ContextMenuEventArgs e)
+		{
+
+		}
+
 		#endregion
 
 		#region Private Types
@@ -673,5 +699,6 @@
 		}
 
 		#endregion
+
 	}
 }
