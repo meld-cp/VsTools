@@ -99,30 +99,6 @@
 					<Polygon Points="0,0 3,3 6,0" VerticalAlignment="Center" Margin="4,0,0,0"/>
 				</StackPanel>
 			</Button>
-										</GeometryDrawing.Brush>
-									</GeometryDrawing>
-									<GeometryDrawing Brush="#FFF6F6F6" Geometry="F1 M16,16z M0,0z M0,0L0,3.043 5,9.043 5,16 11,16 11,9.043 16,3.043 16,-8.88178419700125E-16 0,-8.88178419700125E-16z" />
-									<GeometryDrawing Brush="#FFF0EFF1" Geometry="F1 M16,16z M0,0z M7,14L9,14 9,8.319 14,2.319 14,2 2,2 2,2.319 7,8.319 7,14z" />
-									<GeometryDrawing Brush="#FF424242" Geometry="F1 M16,16z M0,0z M10,15L6,15 6,8.681 1,2.681 1,1 15,1 15,2.681 10,8.681 10,15z M7,14L9,14 9,8.319 14,2.319 14,2 2,2 2,2.319 7,8.319 7,14z" />
-								</DrawingGroup>
-							</DrawingImage.Drawing>
-						</DrawingImage>
-					</Image.Source>
-				</Image>
-				-->
-			</ToggleButton>
-										</GeometryDrawing.Brush>
-									</GeometryDrawing>
-									<GeometryDrawing Brush="#FFF6F6F6" Geometry="F1 M16,16z M0,0z M0,0L0,3.043 5,9.043 5,16 11,16 11,9.043 16,3.043 16,-8.88178419700125E-16 0,-8.88178419700125E-16z" />
-									<GeometryDrawing Brush="#FFF0EFF1" Geometry="F1 M16,16z M0,0z M7,14L9,14 9,8.319 14,2.319 14,2 2,2 2,2.319 7,8.319 7,14z" />
-									<GeometryDrawing Brush="#FF424242" Geometry="F1 M16,16z M0,0z M10,15L6,15 6,8.681 1,2.681 1,1 15,1 15,2.681 10,8.681 10,15z M7,14L9,14 9,8.319 14,2.319 14,2 2,2 2,2.319 7,8.319 7,14z" />
-								</DrawingGroup>
-							</DrawingImage.Drawing>
-						</DrawingImage>
-					</Image.Source>
-				</Image>
-				-->
-			</ToggleButton>
 			<!-- Note: Using an embedded Menu makes it so we can't grab the scrollbar until the ToolWindow has focus.
 			WPF's Menu uses "focus stealing", and WPF only provides static properties for changing that behavior.
 			http://blogs.msdn.com/b/visualstudio/archive/2010/03/09/wpf-in-visual-studio-2010-part-3-focus-and-activation.aspx -->

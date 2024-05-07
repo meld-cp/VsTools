@@ -757,31 +757,6 @@
 			this.lastFilterMenuClosed = DateTime.UtcNow;
 		}
 
-		private void FilterNone_Click(object sender, RoutedEventArgs e)
-		{
-
-		}
-
-		private void FilterBy_Click(object sender, RoutedEventArgs e)
-		{
-
-		}
-
-		private void Filter_Click(object sender, RoutedEventArgs e)
-		{
-
-		}
-
-		private void ResetFilter_Click(object sender, RoutedEventArgs e)
-		{
-
-		}
-
-		private void Filter_ContextMenuClosing(object sender, ContextMenuEventArgs e)
-		{
-
-		}
-
 		#endregion
 
 		#region Private Types
